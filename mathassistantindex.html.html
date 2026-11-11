@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부정적분과 미분의 관계 - 문제풀이 도우미</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- KaTeX CSS & JS for Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <style>
+        body { font-family: 'Inter', 'Pretendard', sans-serif; background-color: #f8fafc; }
+        .katex { font-size: 1.15em; } /* 수식 크기 약간 키움 */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <div id="app" class="max-w-2xl w-full mx-auto bg-white min-h-screen shadow-md flex flex-col relative">
+        <!-- Header -->
+        <header class="bg-indigo-600 text-white p-4 text-center shadow-sm">
+            <h1 class="text-xl font-bold">수학 문제풀이 도우미 📝</h1>
+            <p class="text-indigo-100 text-sm mt-1">부정적분과 미분의 관계</p>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="content" class="flex-grow p-5 flex flex-col pb-24">
+            <!-- Content will be injected here by JS -->
+        </main>
+    </div>
+
+    <script>
+        // --- 1. 데이터 정의 (문제 10개) ---
+        const initialProblems = [
+            {
+                id: 1, type: 'find_integral',
+                question: "$(\\frac{1}{4}x^4 - 2x)' = x^3 - 2$ 임을 이용하여 부정적분 $\\int (x^3 - 2) dx$ 를 구하시오.",
+                hints: [
+                    "문제 이해: 주어진 미분식의 결과와 구해야 하는 부정적분 안의 함수를 비교해 보세요.",
+                    "풀이 방향: 어떤 함수 $F(x)$를 미분한 것이 $f(x)$라면, $f(x)$의 부정적분은 $F(x)$와 관계가 있습니다.",
+                    "핵심 계산: 미분과 적분은 역연산 관계입니다. 우변을 적분하면 좌변의 원래 함수 형태가 나옵니다.",
+                    "정답 직전: 원래 함수를 찾았다면, 부정적분의 필수 요소인 '이 문자'를 끝에 꼭 더해주세요!"
+                ],
+                answers: ["1/4x^4-2x+c", "x^4/4-2x+c", "0.25x^4-2x+c"],
+                concept: "미분과 적분은 역연산 관계이며, 부정적분 결과에는 항상 적분상수 C가 붙습니다."
+            },
+            {
+                id: 2, type: 'find_integral',
+                question: "$(x^3 - x^2)' = 3x^2 - 2x$ 임을 이용하여 부정적분 $\\int (3x^2 - 2x) dx$ 를 구하시오.",
+                hints: [
+                    "문제 이해: 무엇을 미분해야 $3x^2 - 2x$가 나오는지 문제에 주어져 있습니다.",
+                    "풀이 방향: $\\int f(x) dx = F(x) + C \\iff F'(x) = f(x)$ 의 관계를 이용하세요.",
+                    "핵심 계산: 주어진 식의 좌변 $x^3 - x^2$이 바로 우리가 찾는 함수의 기본 형태입니다.",
+                    "정답 직전: 답을 적을 때 적분상수 C를 빠뜨리지 않았는지 확인하세요."
+                ],
+                answers: ["x^3-x^2+c"],
+                concept: "제시된 미분식을 역으로 읽어내는 것이 부정적분의 기초입니다."
+            },
+            {
+                id: 3, type: 'find_integral',
+                question: "$(-2x^2 + 5x)' = -4x + 5$ 임을 이용하여 부정적분 $\\int (-4x + 5) dx$ 를 구하시오.",
+                hints: [
+                    "문제 이해: 괄호 안의 식을 미분한 결과가 피적분함수(적분 기호 안의 식)와 같습니다.",
+                    "풀이 방향: 미분해서 $-4x + 5$가 되는 함수를 찾으면 됩니다.",
+                    "핵심 계산: 식의 좌변인 $-2x^2 + 5x$ 를 그대로 활용하면 됩니다.",
+                    "정답 직전: 식을 완성한 후 마지막에 '+ C'를 꼭 붙여주세요."
+                ],
+                answers: ["-2x^2+5x+c"],
+                concept: "부호가 있는 다항식도 미분/적분의 역연산 규칙은 동일하게 적용됩니다."
+            },
+            {
+                id: 4, type: 'find_fx',
+                question: "다음 등식을 만족시키는 함수 $f(x)$를 구하시오.<br><br>$\\int f(x) dx = x^4 - x^3 + C$",
+                hints: [
+                    "문제 이해: $f(x)$를 적분했더니 우변의 식이 나왔다는 뜻입니다.",
+                    "풀이 방향: 양변을 $x$에 대하여 미분하면 좌변의 적분 기호가 벗겨집니다.",
+                    "핵심 계산: 우변의 $x^4 - x^3 + C$ 를 미분해 보세요. (상수 C를 미분하면 0이 됩니다.)",
+                    "정답 직전: 차수가 하나씩 내려간 다항식을 구하면 됩니다. 여기엔 C가 붙지 않아요!"
+                ],
+                answers: ["4x^3-3x^2"],
+                concept: "$\\int f(x) dx$ 를 미분하면 원래의 함수 $f(x)$가 나옵니다."
+            },
+            {
+                id: 5, type: 'find_fx',
+                question: "다음 등식을 만족시키는 함수 $f(x)$를 구하시오.<br><br>$\\int f(x) dx = 2x^2 - 7x + C$",
+                hints: [
+                    "문제 이해: 어떤 함수 $f(x)$를 적분한 결과가 주어져 있습니다.",
+                    "풀이 방향: 적분된 식을 다시 미분하면 원래 함수 $f(x)$로 되돌아옵니다.",
+                    "핵심 계산: $2x^2$을 미분하고, $-7x$를 미분하여 더해보세요.",
+                    "정답 직전: 일차함수 형태가 정답입니다. 부호에 주의하세요."
+                ],
+                answers: ["4x-7"],
+                concept: "적분상수 C는 미분하면 사라지므로 $f(x)$에는 영향을 주지 않습니다."
+            },
+            {
+                id: 6, type: 'find_fx',
+                question: "다음 등식을 만족시키는 함수 $f(x)$를 구하시오.<br><br>$\\int f(x) dx = -x^3 + 4x^2 - x + C$",
+                hints: [
+                    "문제 이해: 우변의 식을 미분하면 좌변의 $f(x)$를 구할 수 있습니다.",
+                    "풀이 방향: 다항함수의 미분법 $(x^n)' = nx^{n-1}$ 을 각 항에 적용하세요.",
+                    "핵심 계산: $-x^3$을 미분하면 $-3x^2$이 됩니다. 나머지 항들도 미분해 볼까요?",
+                    "정답 직전: 마지막 항 $-x$를 미분하면 상수가 됩니다. 계산 실수를 점검하세요."
+                ],
+                answers: ["-3x^2+8x-1"],
+                concept: "항이 여러 개인 다항함수도 각 항을 따로 미분하여 더해주면 됩니다."
+            },
+            {
+                id: 7, type: 'find_fx', // 심화유형 1
+                question: "다음 등식을 만족시키는 함수 $f(x)$를 구하시오.<br><br>$\\int x f(x) dx = \\frac{1}{3}x^3 + x^2 + C$",
+                hints: [
+                    "문제 이해: 적분 기호 안에 $f(x)$가 아니라 $x \\cdot f(x)$가 들어있습니다.",
+                    "풀이 방향: 변함없이 양변을 미분하면 좌변은 적분 기호 안의 식인 $x f(x)$가 됩니다.",
+                    "핵심 계산: 우변을 미분하면 $x^2 + 2x$가 됩니다. 즉, $x f(x) = x^2 + 2x$ 입니다.",
+                    "정답 직전: 양변을 $x$로 나누면 우리가 찾는 $f(x)$가 나옵니다!"
+                ],
+                answers: ["x+2"],
+                concept: "적분 기호 안의 함수 형태가 복잡해도 양변을 미분한다는 원칙은 동일합니다."
+            },
+            {
+                id: 8, type: 'find_fx', // 심화유형 2
+                question: "다음 등식을 만족시키는 함수 $f(x)$를 구하시오.<br><br>$\\int (f(x) - 2x) dx = x^3 - x^2 + C$",
+                hints: [
+                    "문제 이해: 이번엔 피적분함수가 $(f(x) - 2x)$ 입니다.",
+                    "풀이 방향: 양변을 미분하면 $f(x) - 2x = (우변의 미분)$ 형태가 됩니다.",
+                    "핵심 계산: 우변을 미분하면 $3x^2 - 2x$ 입니다. 즉, $f(x) - 2x = 3x^2 - 2x$ 입니다.",
+                    "정답 직전: 등식을 정리하여 $f(x)$만 남겨보세요. $-2x$가 이항되며 어떻게 될까요?"
+                ],
+                answers: ["3x^2"],
+                concept: "방정식을 풀듯이 양변 미분 후 식을 정리하여 $f(x)$를 도출할 수 있습니다."
+            },
+            {
+                id: 9, type: 'find_fx',
+                question: "다음 등식을 만족시키는 함수 $f(x)$를 구하시오.<br><br>$\\int f(x) dx = x^5 + C$",
+                hints: [
+                    "문제 이해: 가장 기본적인 형태의 문제입니다. 우변을 미분하세요.",
+                    "풀이 방향: $x^n$의 미분법칙을 떠올려보세요.",
+                    "핵심 계산: $x^5$을 미분하면 지수가 앞으로 내려오고 차수가 하나 줄어듭니다.",
+                    "정답 직전: 계수와 지수의 숫자가 올바른지 확인하세요."
+                ],
+                answers: ["5x^4"],
+                concept: "거듭제곱 함수의 미분 공식을 정확히 숙지하는 것이 중요합니다."
+            },
+            {
+                id: 10, type: 'find_integral',
+                question: "$(x^4 + 3x)' = 4x^3 + 3$ 임을 이용하여 부정적분 $\\int (4x^3 + 3) dx$ 를 구하시오.",
+                hints: [
+                    "문제 이해: 첫 번째 문제와 같은 유형입니다. 주어진 힌트를 잘 보세요.",
+                    "풀이 방향: 미분해서 $4x^3 + 3$이 되는 원래 함수가 바로 부정적분입니다.",
+                    "핵심 계산: 식 좌변의 $x^4 + 3x$가 찾던 함수입니다.",
+                    "정답 직전: 부정적분 문제를 풀 때 항상 마지막에 더해줘야 하는 것을 잊지 마세요."
+                ],
+                answers: ["x^4+3x+c"],
+                concept: "미분 관계식을 알면 적분 과정 없이도 부정적분을 바로 알아낼 수 있습니다."
+            },
+            {
+                id: 11, type: 'find_fx', // 심화유형 3
+                question: "다항함수 $f(x)$에 대하여 $\\int \\left\\{ \\frac{d}{dx} (x^2 f(x)) \\right\\} dx = x^4 - x^3 + 2x^2 + C$ 일 때, $f(x)$를 구하시오.",
+                hints: [
+                    "문제 이해: 미분을 먼저 하고 나중에 적분을 하면 식이 어떻게 변하는지 묻는 심화 문제입니다.",
+                    "풀이 방향: 어떤 식을 미분한 뒤 다시 적분하면 원래의 식이 되지만, 마지막 연산이 적분이므로 **적분상수**가 추가로 붙습니다. 즉, 좌변은 $x^2 f(x) + C'$ 가 됩니다.",
+                    "핵심 계산: 좌우변의 상수를 묶어 정리하면, 다항함수 $f(x)$에 대해 $x^2 f(x) = x^4 - x^3 + 2x^2$ 가 성립합니다.",
+                    "정답 직전: 양변을 $x^2$으로 나누어 $f(x)$를 구해보세요!"
+                ],
+                answers: ["x^2-x+2"],
+                concept: "미분 후 적분하면 원래 함수에 적분상수가 붙고, 적분 후 미분하면 원래 함수가 그대로(상수 없이) 나옵니다."
+            }
+        ];
+
+        // --- 2. 상태 관리 (State) ---
+        let studentInfo = { id: '', name: '' };
+        let problemsQueue = [...initialProblems];
+        let currentProblem = null;
+        let hintsRevealed = 0;
+        let attemptHistory = []; // { id, status: 'correct'|'passed', hintsUsed }
+        let isAnswerChecked = false;
+
+        // --- 3. DOM 요소 및 렌더링 함수 ---
+        const contentDiv = document.getElementById('content');
+
+        function renderMath() {
+            renderMathInElement(contentDiv, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false}
+                ]
+            });
+        }
+
+        // 화면 1: 시작 화면
+        function renderStartScreen() {
+            contentDiv.innerHTML = `
+                <div class="text-center mt-10 fade-in">
+                    <h2 class="text-2xl font-bold text-indigo-700 mb-4">환영합니다!</h2>
+                    <p class="text-gray-600 mb-6 leading-relaxed">
+                        부정적분과 미분의 관계를 확실하게 다지는 ${initialProblems.length}개의 문제를 준비했어요.<br>
+                        막히면 힌트를 볼 수 있고, 정 모르면 패스한 뒤 다시 풀 수 있습니다.
+                    </p>
+                    
+                    <!-- 학번/이름 입력 폼 -->
+                    <div class="max-w-xs mx-auto bg-white p-5 rounded-xl border border-gray-200 shadow-sm mb-6 text-left">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">학번</label>
+                        <input type="text" id="student-id" class="w-full p-2 border border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="예: 20101">
+                        
+                        <label class="block text-sm font-bold text-gray-700 mb-1">이름</label>
+                        <input type="text" id="student-name" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="예: 홍길동">
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8 text-left text-sm text-blue-800">
+                        <strong>💡 입력 방법 안내</strong><br>
+                        - 분수는 <b>1/4x^4</b> 처럼 입력하세요.<br>
+                        - 거듭제곱은 <b>x^3</b> 처럼 ^ 기호를 사용하세요.<br>
+                        - 적분상수 C는 대문자/소문자 모두 가능합니다. 띄어쓰기는 무시됩니다.
+                    </div>
+                    <button onclick="startQuiz()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+                        문제 풀기 시작
+                    </button>
+                    
+                    <!-- QR 코드 공유 영역 수정 -->
+                    <div class="mt-10 flex flex-col items-center justify-center border-t border-gray-200 pt-6">
+                        <p class="text-sm font-bold text-gray-600 mb-2">학생들과 앱 공유하기 📲</p>
+                        <p class="text-xs text-gray-500 mb-3 break-keep">※ 웹에 배포(호스팅)한 후, 해당 인터넷 주소를 아래에 입력하면 QR 코드가 생성됩니다.</p>
+                        <input type="text" id="share-url" oninput="updateQRCode()" placeholder="웹앱 주소(예: https://...) 입력" class="w-full max-w-sm p-2 text-sm border border-gray-300 rounded-lg mb-4 text-center focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        
+                        <img id="qr-code-img" alt="공유용 QR 코드" class="w-32 h-32 border border-gray-200 p-2 rounded-xl shadow-sm bg-white">
+                        <p class="text-xs text-gray-400 mt-2">카메라로 스캔하여 바로 접속하세요!</p>
+                    </div>
+                </div>
+            `;
+            renderMath();
+            
+            // 초기 URL 설정 및 QR 생성
+            setTimeout(() => {
+                const urlInput = document.getElementById('share-url');
+                let initialUrl = window.location.href;
+                
+                // 로컬 파일이나 iframe 환경인 경우 주소창을 비웁니다.
+                if (initialUrl.startsWith('about:') || initialUrl.startsWith('file:')) {
+                    initialUrl = '';
+                }
+                
+                if (urlInput && initialUrl) {
+                    urlInput.value = initialUrl;
+                }
+                updateQRCode(); // QR 코드 최초 생성
+            }, 10);
+        }
+
+        // 입력된 주소로 QR 코드 실시간 업데이트 함수
+        function updateQRCode() {
+            const urlInput = document.getElementById('share-url');
+            const qrImg = document.getElementById('qr-code-img');
+            
+            if (urlInput && qrImg) {
+                let url = urlInput.value.trim();
+                // 주소가 비어있으면 기본 안내용 QR 생성
+                if (!url) url = "https://example.com/please-enter-your-url"; 
+                
+                const encodedUrl = encodeURIComponent(url);
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodedUrl}&margin=10`;
+            }
+        }
+
+        function startQuiz() {
+            const stuId = document.getElementById('student-id')?.value.trim();
+            const stuName = document.getElementById('student-name')?.value.trim();
+            
+            if(!stuId || !stuName) {
+                alert("학번과 이름을 모두 입력해주세요.");
+                return;
+            }
+            
+            studentInfo = { id: stuId, name: stuName };
+            problemsQueue = [...initialProblems];
+            attemptHistory = [];
+            loadNextProblem();
+        }
+
+        function loadNextProblem() {
+            if (problemsQueue.length === 0) {
+                renderResultScreen();
+                return;
+            }
+            // 큐의 맨 앞에서 문제를 하나 꺼내어 현재 문제로 설정합니다.
+            currentProblem = problemsQueue.shift(); 
+            hintsRevealed = 0;
+            isAnswerChecked = false;
+            renderProblemScreen();
+        }
+
+        // 화면 2: 문제 화면
+        function renderProblemScreen() {
+            // 남은 문제 수 계산 (현재 문제 + 대기열)
+            const totalDone = attemptHistory.filter(h => h.status === 'correct').length;
+            const progress = `진행도: ${totalDone} / ${initialProblems.length}`;
+
+            contentDiv.innerHTML = `
+                <div class="fade-in flex flex-col h-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-3 py-1 rounded-full">
+                            문제 ${currentProblem.id}
+                        </span>
+                        <span class="text-gray-500 text-sm font-medium">${progress}</span>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6 text-lg">
+                        ${currentProblem.question}
+                    </div>
+
+                    <div id="hints-container" class="mb-6 space-y-2 flex-grow">
+                        <!-- Hints injected here -->
+                    </div>
+
+                    ${!isAnswerChecked ? `
+                        <div class="flex justify-center mb-4">
+                            <button id="btn-hint" onclick="revealHint()" class="text-indigo-600 border border-indigo-500 hover:bg-indigo-50 px-4 py-2 rounded-lg text-sm transition-colors">
+                                💡 힌트 보기 (${hintsRevealed}/4)
+                            </button>
+                        </div>
+                    ` : ''}
+
+                    <div id="feedback-area" class="mb-4 text-center"></div>
+
+                    <div class="mt-auto">
+                        <!-- 풀이 공간 (Scratchpad) -->
+                        <div class="mb-4 border border-slate-300 rounded-lg overflow-hidden bg-white shadow-inner flex flex-col relative" ${isAnswerChecked ? 'style="display:none;"' : ''}>
+                            <div class="flex justify-between items-center bg-slate-50 px-3 py-2 border-b border-slate-200">
+                                <span class="text-sm font-semibold text-slate-600 hidden sm:inline">✏️ 풀이 공간 (펜/손가락 사용) ${currentProblem.id === 11 ? '<span class="text-indigo-500 font-bold ml-1">- 넓은 연습장</span>' : ''}</span>
+                                <span class="text-sm font-semibold text-slate-600 sm:hidden">✏️ 풀이</span>
+                                <div class="flex gap-1 sm:gap-2">
+                                    <button id="btn-tool-pen" onclick="setTool('pen')" class="text-xs bg-indigo-100 border border-indigo-300 px-2 py-1 rounded text-indigo-700 font-bold transition-colors">펜</button>
+                                    <button id="btn-tool-eraser" onclick="setTool('eraser')" class="text-xs bg-white border border-slate-300 hover:bg-slate-100 px-2 py-1 rounded text-slate-600 transition-colors">지우개</button>
+                                    <button onclick="clearCanvas()" class="text-xs bg-white border border-slate-300 hover:bg-red-50 hover:text-red-600 px-2 py-1 rounded text-slate-600 transition-colors">전체 지우기</button>
+                                </div>
+                            </div>
+                            <!-- 11번 문제일 경우 캔버스 높이를 대폭 키움 (h-56 -> h-96) -->
+                            <canvas id="scratchpad" class="w-full ${currentProblem.id === 11 ? 'h-96' : 'h-56'} touch-none cursor-crosshair"></canvas>
+                            
+                            <!-- AI 로딩 오버레이 -->
+                            <div id="ai-loading" class="absolute inset-0 bg-white/80 flex-col items-center justify-center hidden z-10">
+                                <div class="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-2"></div>
+                                <span class="text-sm font-bold text-indigo-700">AI가 풀이를 분석 중입니다... 🤖</span>
+                            </div>
+                        </div>
+
+                        <!-- 제출 버튼 그룹 -->
+                        <div class="flex flex-col gap-2 mb-4" ${isAnswerChecked ? 'style="display:none;"' : ''}>
+                            <button id="btn-submit-ai" onclick="checkCanvasWithAI()" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-[1.02] shadow-md flex items-center justify-center gap-2">
+                                <span>✨ 손글씨 풀이 제출 및 AI 채점</span>
+                            </button>
+                        </div>
+
+                        <!-- 텍스트 입력 폴백 (선택사항) -->
+                        <div class="relative" ${isAnswerChecked ? 'style="display:none;"' : ''}>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="h-px bg-slate-200 flex-grow"></div>
+                                <span class="text-xs text-slate-400 font-medium">또는 키보드로 입력</span>
+                                <div class="h-px bg-slate-200 flex-grow"></div>
+                            </div>
+                            
+                            <!-- 수식 입력 보조 버튼 -->
+                            <div class="flex flex-wrap gap-2 mb-2 justify-center">
+                                <button onclick="insertAtCursor('x')" class="px-3 py-1.5 bg-slate-100 border border-slate-300 hover:bg-slate-200 rounded text-sm font-mono text-slate-700 transition-colors shadow-sm">x</button>
+                                <button onclick="insertAtCursor('^2')" class="px-3 py-1.5 bg-slate-100 border border-slate-300 hover:bg-slate-200 rounded text-sm font-mono text-slate-700 transition-colors shadow-sm">x²</button>
+                                <button onclick="insertAtCursor('^3')" class="px-3 py-1.5 bg-slate-100 border border-slate-300 hover:bg-slate-200 rounded text-sm font-mono text-slate-700 transition-colors shadow-sm">x³</button>
+                                <button onclick="insertAtCursor('^4')" class="px-3 py-1.5 bg-slate-100 border border-slate-300 hover:bg-slate-200 rounded text-sm font-mono text-slate-700 transition-colors shadow-sm">x⁴</button>
+                                <button onclick="insertAtCursor('^5')" class="px-3 py-1.5 bg-slate-100 border border-slate-300 hover:bg-slate-200 rounded text-sm font-mono text-slate-700 transition-colors shadow-sm">x⁵</button>
+                                <button onclick="insertAtCursor('^')" class="px-3 py-1.5 bg-slate-100 border border-slate-300 hover:bg-slate-200 rounded text-sm font-mono text-slate-700 transition-colors shadow-sm">^</button>
+                                <button onclick="insertAtCursor('/')" class="px-3 py-1.5 bg-slate-100 border border-slate-300 hover:bg-slate-200 rounded text-sm font-mono text-slate-700 transition-colors shadow-sm">분수(/)</button>
+                                <button onclick="insertAtCursor('+c')" class="px-3 py-1.5 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded text-sm font-mono text-indigo-700 font-bold transition-colors shadow-sm">+C</button>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <input type="text" id="answer-input" placeholder="정답 입력 (예: 1/4x^4-2x+C)" 
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base font-mono">
+                                <button id="btn-submit" onclick="checkAnswer()" class="shrink-0 bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                                    확인
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center mt-4">
+                            <button id="btn-pass" onclick="passProblem()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-6 rounded-full transition-colors text-sm" ${isAnswerChecked ? 'style="display:none;"' : ''}>
+                                ⏭️ 이 문제 패스하기
+                            </button>
+                            ${isAnswerChecked ? `
+                                <button onclick="loadNextProblem()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg shadow-md transition-colors text-lg">
+                                    다음 문제 ➡️
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Re-render revealed hints
+            const hintsDiv = document.getElementById('hints-container');
+            hintsDiv.innerHTML = '';
+            for(let i=0; i<hintsRevealed; i++) {
+                hintsDiv.innerHTML += `
+                    <div class="bg-amber-50 border-l-4 border-amber-400 p-3 text-sm text-amber-900 rounded-r-lg fade-in">
+                        ${currentProblem.hints[i]}
+                    </div>
+                `;
+            }
+            renderMath();
+            initCanvas(); // 풀이 공간 캔버스 초기화
+            // document.getElementById('answer-input').focus(); // 자동 포커스 해제 (모바일 환경에서 키보드가 올라와 풀이 공간을 가리는 것 방지)
+        }
+
+        // 커서 위치에 수식 기호 삽입 함수
+        function insertAtCursor(text) {
+            const input = document.getElementById('answer-input');
+            if (!input || input.disabled) return;
+            
+            const startPos = input.selectionStart;
+            const endPos = input.selectionEnd;
+            
+            input.value = input.value.substring(0, startPos) + text + input.value.substring(endPos, input.value.length);
+            input.focus();
+            input.selectionStart = startPos + text.length;
+            input.selectionEnd = startPos + text.length;
+        }
+
+        function revealHint() {
+            if (hintsRevealed < 4) {
+                hintsRevealed++;
+                renderProblemScreen();
+            } else {
+                alert("모든 힌트를 확인했습니다.");
+            }
+        }
+
+        function normalizeString(str) {
+            return str.replace(/\s+/g, '').toLowerCase();
+        }
+
+        function checkAnswer() {
+            if(isAnswerChecked) return;
+
+            const inputEl = document.getElementById('answer-input');
+            const userInput = normalizeString(inputEl.value);
+            if (!userInput) return;
+
+            const isCorrect = currentProblem.answers.some(ans => normalizeString(ans) === userInput);
+            handleResult(isCorrect, userInput);
+        }
+
+        // --- 3.5 AI 채점 기능 (Gemini API) ---
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+        
+        async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const res = await fetch(url, options);
+                    if (res.ok) return res;
+                    if (res.status === 429) {
+                        await delay(backoff);
+                        backoff *= 2;
+                        continue;
+                    }
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await delay(backoff);
+                    backoff *= 2;
+                }
+            }
+        }
+
+        let hasDrawn = false; // 캔버스에 무언가 그렸는지 추적
+
+        async function checkCanvasWithAI() {
+            if(isAnswerChecked) return;
+            if(!hasDrawn) {
+                alert("스케치패드에 풀이나 답을 먼저 적어주세요!");
+                return;
+            }
+
+            const canvas = document.getElementById('scratchpad');
+            const loadingOverlay = document.getElementById('ai-loading');
+            
+            // 로딩 UI 표시
+            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.classList.add('flex');
+            
+            const base64ImageData = canvas.toDataURL('image/jpeg').split(',')[1];
+            
+            const prompt = `너는 고등학교 수학 교사야. 학생이 다음 문제에 대한 풀이와 답을 스케치패드에 그렸어.
+            문제: ${currentProblem.question}
+            실제 정답: ${currentProblem.answers[0]}
+            
+            학생이 작성한 이미지 내용을 분석해서 1) 풀이 방향이나 최종 정답이 맞는지 평가해줘. 
+            2) 정답이라면 폭풍 칭찬과 함께 왜 맞았는지 핵심 개념을 짚어주는 긍정적인 피드백을 주고, 오답이라면 막힌 부분이나 실수(특히 적분상수 C 누락 등)를 짚어주는 친절한 한국어 피드백을 작성해줘.
+            만약 이미지가 비어있거나 수학 풀이가 아니라면 isCorrect를 false로 설정해줘.`;
+
+            const payload = {
+                contents: [
+                    {
+                        role: "user",
+                        parts: [
+                            { text: prompt },
+                            {
+                                inlineData: {
+                                    mimeType: "image/jpeg",
+                                    data: base64ImageData
+                                }
+                            }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            isCorrect: { type: "BOOLEAN", description: "학생의 최종 답안이나 풀이가 정답으로 인정될 수 있는지 여부" },
+                            feedback: { type: "STRING", description: "학생에게 건네는 따뜻하고 구체적인 피드백 (오답일 경우 막힌 부분이나 실수한 부분 짚어주기)" }
+                        },
+                        required: ["isCorrect", "feedback"]
+                    }
+                }
+            };
+
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates[0].content.parts[0].text) {
+                    const jsonText = result.candidates[0].content.parts[0].text;
+                    const parsed = JSON.parse(jsonText);
+                    
+                    handleResult(parsed.isCorrect, "canvas", parsed.feedback);
+                } else {
+                    throw new Error("AI 응답 형식이 올바르지 않습니다.");
+                }
+            } catch (error) {
+                console.error("AI 채점 오류:", error);
+                alert("AI 채점 중 오류가 발생했습니다. 키보드 입력 방식을 사용해주세요.");
+            } finally {
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('flex');
+            }
+        }
+
+        // 공통 결과 처리 함수 (텍스트 및 AI 채점 모두 사용)
+        function handleResult(isCorrect, userInputType, customFeedback = null) {
+            if (isCorrect) {
+                isAnswerChecked = true;
+                attemptHistory.push({ id: currentProblem.id, status: 'correct', hintsUsed: hintsRevealed });
+                
+                const successMsg = customFeedback ? customFeedback : currentProblem.concept;
+
+                // UI 갱신 (다음 문제 버튼 표시 등을 위해 화면을 다시 그림)
+                renderProblemScreen(); 
+                
+                // 다시 그려진 화면의 피드백 영역에 정답 메시지 삽입 (화면 갱신 후 실행되어야 사라지지 않음)
+                const newFeedbackArea = document.getElementById('feedback-area');
+                if (newFeedbackArea) {
+                    newFeedbackArea.innerHTML = `
+                        <div class="p-4 bg-green-100 border border-green-300 rounded-lg fade-in text-left mb-4">
+                            <span class="text-green-700 font-extrabold text-lg block mb-1">정답입니다! 🎉</span>
+                            <span class="text-sm text-green-800 break-keep">${successMsg}</span>
+                        </div>
+                    `;
+                }
+                
+                const inputEl = document.getElementById('answer-input');
+                if(inputEl) inputEl.disabled = true;
+                
+            } else {
+                const feedbackArea = document.getElementById('feedback-area');
+                let errorFeedback = customFeedback;
+                
+                if (!errorFeedback) {
+                    if (currentProblem.type === 'find_integral' && !userInputType.includes('c') && userInputType !== 'canvas') {
+                        errorFeedback = "<strong>아쉽네요! (자주 틀리는 유형 🚨)</strong><br>부정적분을 구할 때는 항상 <b>적분상수 C</b>가 붙어야 합니다. 잊지 마세요!";
+                    } else if (currentProblem.type === 'find_fx' && userInputType.includes('c') && userInputType !== 'canvas') {
+                        errorFeedback = "<strong>아차! (자주 틀리는 유형 🚨)</strong><br>함수 $f(x)$를 구하는 중이죠? 이미 우변에 적분상수 C가 있으니, $f(x)$ 식에는 C가 포함되지 않습니다.";
+                    } else {
+                        errorFeedback = "<strong>오답입니다.</strong><br>계산 과정에서 차수나 부호를 다시 한 번 확인해 보세요. 힌트를 활용해 보는 것도 좋습니다.";
+                    }
+                } else {
+                     errorFeedback = `<strong>조금 더 생각해볼까요? 💡</strong><br>${errorFeedback}`;
+                }
+
+                feedbackArea.innerHTML = `
+                    <div class="p-3 bg-red-50 border border-red-200 rounded-lg fade-in text-sm text-red-700 text-left mb-4">
+                        ${errorFeedback}
+                    </div>
+                `;
+                
+                const inputEl = document.getElementById('answer-input');
+                if(userInputType !== 'canvas' && inputEl) {
+                    inputEl.classList.add('border-red-500');
+                    setTimeout(() => inputEl.classList.remove('border-red-500'), 500);
+                }
+            }
+            renderMath();
+        }
+
+        function passProblem() {
+            // 패스 처리: 현재 문제를 큐의 맨 뒤로 다시 보냄
+            problemsQueue.push(currentProblem);
+            
+            alert("문제를 뒤로 미뤘습니다. 나중에 다시 풀어보세요!");
+            loadNextProblem();
+        }
+
+        // 화면 3: 결과 화면
+        function renderResultScreen() {
+            // 히스토리 취합 (문제 번호순 정렬)
+            attemptHistory.sort((a, b) => a.id - b.id);
+
+            let tableRows = attemptHistory.map(item => `
+                <tr class="border-b">
+                    <td class="py-2 text-center text-sm font-medium">문제 ${item.id}</td>
+                    <td class="py-2 text-center text-sm ${item.status === 'correct' ? 'text-green-600 font-bold' : 'text-gray-500'}">O</td>
+                    <td class="py-2 text-center text-sm">${item.hintsUsed}개</td>
+                </tr>
+            `).join('');
+
+            contentDiv.innerHTML = `
+                <div class="fade-in">
+                    <h2 class="text-2xl font-bold text-indigo-700 mb-2 text-center">학습 완료! 🏆</h2>
+                    <div class="text-center text-gray-600 mb-6">
+                        <span class="font-bold text-indigo-600">${studentInfo.id} ${studentInfo.name}</span> 학생의 학습 결과입니다.
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-3 text-sm font-semibold text-gray-600 text-center">문제 번호</th>
+                                    <th class="py-3 text-sm font-semibold text-gray-600 text-center">정답 여부</th>
+                                    <th class="py-3 text-sm font-semibold text-gray-600 text-center">사용 힌트 수</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="reflection" class="block text-sm font-bold text-gray-700 mb-2">
+                            선생님께 보내는 학습 성찰 (세특 참고용) 📝
+                        </label>
+                        <p class="text-xs text-gray-500 mb-2">오늘 학습하며 새롭게 알게 된 점, 어려웠던 점, 극복한 방법 등을 자유롭게 적어주세요.</p>
+                        <textarea id="reflection" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="예: 부정적분을 할 때 적분상수 C를 자꾸 빼먹었는데, 왜 C가 필요한지 정확히 이해하게 되었습니다."></textarea>
+                    </div>
+
+                    <button onclick="submitResult()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-lg shadow-md transition-colors">
+                        학습 결과 제출하기
+                    </button>
+                </div>
+            `;
+        }
+
+        function submitResult() {
+            const reflection = document.getElementById('reflection').value;
+            if(!reflection.trim()) {
+                if(!confirm("성찰을 작성하지 않고 제출하시겠습니까? 세특 기록에 도움이 되는 내용을 적어주시면 좋습니다.")) {
+                    return;
+                }
+            }
+            alert("학습 결과가 선생님께 성공적으로 제출되었습니다. 수고하셨습니다!");
+            // 리셋
+            renderStartScreen();
+        }
+
+        // --- 4. 캔버스 (풀이 공간) 기능 ---
+        let canvas, ctx;
+        let isDrawing = false;
+        let lastX = 0, lastY = 0;
+        let currentTool = 'pen';
+
+        function initCanvas() {
+            canvas = document.getElementById('scratchpad');
+            if (!canvas) return;
+            
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            
+            // 고정 높이 대신, 렌더링된 캔버스 요소의 실제 높이를 가져와 할당합니다.
+            // 이렇게 하면 클래스 변경(h-56 또는 h-96)에 따라 동적으로 도화지 크기가 맞춰집니다.
+            canvas.height = canvas.getBoundingClientRect().height; 
+            
+            ctx = canvas.getContext('2d');
+            
+            // 배경을 흰색으로 채우기 (AI가 투명 배경을 검은색으로 인식하는 것 방지)
+            fillCanvasWhite();
+
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            setTool('pen'); // 도구 및 스타일 초기화
+            
+            hasDrawn = false; // 초기화
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // 터치 이벤트
+            canvas.addEventListener('touchstart', startDrawingTouch, {passive: false});
+            canvas.addEventListener('touchmove', drawTouch, {passive: false});
+            canvas.addEventListener('touchend', stopDrawing);
+            canvas.addEventListener('touchcancel', stopDrawing);
+        }
+
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
+
+        function getTouchPos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.touches[0].clientX - rect.left,
+                y: evt.touches[0].clientY - rect.top
+            };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            hasDrawn = true;
+            const pos = getMousePos(e);
+            lastX = pos.x; lastY = pos.y;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const pos = getMousePos(e);
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            lastX = pos.x; lastY = pos.y;
+        }
+
+        function startDrawingTouch(e) {
+            e.preventDefault(); 
+            isDrawing = true;
+            hasDrawn = true;
+            const pos = getTouchPos(e);
+            lastX = pos.x; lastY = pos.y;
+        }
+
+        function drawTouch(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const pos = getTouchPos(e);
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            lastX = pos.x; lastY = pos.y;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function fillCanvasWhite() {
+            if(ctx && canvas) {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function clearCanvas() {
+            if(ctx && canvas) {
+                fillCanvasWhite();
+                hasDrawn = false;
+            }
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            const btnPen = document.getElementById('btn-tool-pen');
+            const btnEraser = document.getElementById('btn-tool-eraser');
+            
+            if(!ctx || !btnPen || !btnEraser) return;
+
+            if (tool === 'pen') {
+                btnPen.className = "text-xs bg-indigo-100 border border-indigo-300 px-2 py-1 rounded text-indigo-700 font-bold transition-colors";
+                btnEraser.className = "text-xs bg-white border border-slate-300 hover:bg-slate-100 px-2 py-1 rounded text-slate-600 transition-colors";
+                ctx.strokeStyle = '#1e293b'; // 펜 색상
+                ctx.lineWidth = 3.0; // 펜 굵기
+            } else {
+                btnEraser.className = "text-xs bg-indigo-100 border border-indigo-300 px-2 py-1 rounded text-indigo-700 font-bold transition-colors";
+                btnPen.className = "text-xs bg-white border border-slate-300 hover:bg-slate-100 px-2 py-1 rounded text-slate-600 transition-colors";
+                ctx.strokeStyle = '#ffffff'; // 지우개(배경색)
+                ctx.lineWidth = 20.0; // 지우개 굵기
+            }
+        }
+
+        // 초기 실행
+        window.onload = renderStartScreen;
+
+    </script>
+</body>
+</html>
